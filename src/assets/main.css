@@ -1,0 +1,12 @@
+@import './base.css';
+
+body {
+  display: grid;
+  height: 100vh;
+  place-items: center;
+}
+
+main {
+  max-width: 60rem;
+  margin: auto;
+}
