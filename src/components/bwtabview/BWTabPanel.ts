@@ -1,14 +1,21 @@
-import { defineComponent } from 'vue'
+import { defineComponent, type PropType } from 'vue'
+
+import { type TabPanelProps } from 'primevue/tabpanel'
 
 export const BWTabPanel = defineComponent({
-  name: 'BWTabPanel',
-  props: ['header'] as unknown as undefined,
-  setup(props, { slots }) {
-    console.log('BWTabPanel', (props as any).header)
-    // console.log(slots)
-
-    return () => {
-      return slots.default?.()
-    }
+  props: {
+    header: { type: String, default: undefined },
+    headerStyle: null,
+    headerClass: null,
+    contentStyle: null,
+    contentClass: null,
+    disabled: { type: Boolean, default: false },
+    pt: {
+      default: undefined,
+      type: Object as PropType<TabPanelProps['pt']>,
+    },
+  },
+  setup(_props, { slots }: any) {
+    return () => slots.default?.()
   }
 })
