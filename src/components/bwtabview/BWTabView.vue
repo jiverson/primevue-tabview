@@ -1,6 +1,6 @@
 <template>
   <div>
-    <TabView :scrollable="false">
+    <TabView ref="bwtabview" :scrollable="false">
       <template v-for="(panel, _index) of tabs" :key="_index">
         <TabPanel v-bind="panel.props">
           <template #header>
@@ -35,8 +35,22 @@ export default defineComponent({
       default: 3
     },
   },
-  created() {
-    console.log('BWTabView created');
+  mounted() {
+    console.log(this.$refs.bwtabview);
+
+    const primary = this.getElement(this.$refs.bwtabview).querySelector('.p-tabview-nav');
+    console.log(primary)
+
+    if (primary) {
+      primary.insertAdjacentHTML('beforeend', `
+        <li class="p-tabview-nav-more">
+          <button type="button" class="p-link">
+            <span class="p-tabview-nav-more-icon pi pi-ellipsis-h"></span>
+          </button>
+          <ul class="p-tabview-nav-more-list">${primary.innerHTML}</ul>
+        </li>
+      `);
+    }
   },
   computed: {
     tabs() {
@@ -71,6 +85,10 @@ export default defineComponent({
   methods: {
     onSlotInfo() {
       console.log(this.tabs);
+    },
+
+    getElement(item: any): Element {
+      return (item as any).$el;
     },
 
     isTabPanel(vnode: any) {
