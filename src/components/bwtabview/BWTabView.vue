@@ -1,6 +1,6 @@
 <template>
   <div>
-    <TabView ref="bwtabview" :scrollable="false">
+    <TabView ref="bwtabview" :scrollable="false" v-model:activeIndex="active">
       <template v-for="(panel, _index) of tabs" :key="_index">
         <TabPanel v-bind="panel.props">
           <template #header>
@@ -13,24 +13,57 @@
       </template>
     </TabView>
     <Button @click="onSlotInfo">All Slots</Button>
-    <Button type="button" icon="pi pi-ellipsis-v" @click="onToggleMenu" aria-haspopup="true"
-      aria-controls="overlay_menu" />
-    <Menu ref="menu" id="overlay_menu" :model="items" :popup="true" />
+    <!-- <Menu ref="menu" id="overlay_menu" :model="tabsMenu" :popup="true">
+      <template #item="{ item, props }">
+        <a style="padding: 1.25rem; font-weight: 700; color: #6b7280;" v-ripple v-bind="props.action">
+          <span class="p-tabview-title">{{ item.label }}</span>
+        </a>
+      </template>
+    </Menu> -->
+
+    <!-- TODO: Primevue issue: https://github.com/primefaces/primevue/issues/3498 -->
+    <Menu ref="menu" id="overlay_menu" :model="tabsMenu" :popup="true" class="bwtabview-menu">
+      <template #item="{ item, props }">
+        <a v-if="item.props?.header" style="padding: 1.25rem; font-weight: 700; color: #6b7280;" v-ripple v-bind="props.action">
+          <span class="p-tabview-title">{{ item.props.header }}</span>
+        </a>
+        <component v-else :is="item.children?.header" />
+      </template>
+    </Menu>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, type VNode, type ComponentPublicInstance } from 'vue';
 import TabPanel from 'primevue/tabpanel';
-import TabView from 'primevue/tabview';
 import { BWTabPanel } from '@/components/bwtabview/BWTabPanel';
 import { useResizeObserver } from '@vueuse/core';
+import type { MenuItem, MenuItemCommandEvent } from 'primevue/menuitem';
 /**
  * https://css-tricks.com/container-adapting-tabs-with-more-button/
  * https://dev.to/thomasferro/composition-api-v-renderless-components-let-s-use-vue-3-s-features-to-clean-our-components-n25
  * https://blog.logrocket.com/making-components-dynamic-vue-3/
  * https://stackoverflow.com/questions/74406010/how-to-check-slot-or-vnode-type-in-vue3-render-function
+ * https://github.com/primefaces/primevue/issues/3498
  */
+
+//  {
+//   "action": {
+//     "class": "p-menuitem-link",
+//     "tabindex": "-1",
+//     "aria-hidden": true,
+//     "data-pc-section": "action"
+//   },
+//   "icon": {
+//     "class": "p-menuitem-icon",
+//     "data-pc-section": "icon"
+//   },
+//   "label": {
+//     "class": "p-menuitem-text",
+//     "data-pc-section": "label"
+//   }
+// }
+
 
 export default defineComponent({
   name: 'BWTabView',
@@ -42,34 +75,10 @@ export default defineComponent({
   },
   data() {
     return {
-      items: [
-        {
-          label: 'New',
-          icon: 'pi pi-fw pi-plus',
-          command: () => {
-            console.log('New');
-          }
-        },
-        {
-          label: 'Open',
-          icon: 'pi pi-fw pi-download',
-          command: () => {
-            console.log('Open');
-          }
-        },
-        {
-          label: 'Undo',
-          icon: 'pi pi-fw pi-refresh',
-          command: () => {
-            console.log('Undo');
-          }
-        }
-      ]
+      active: 0,
     }
   },
   mounted() {
-    console.log(this.$refs.bwtabview);
-
     const bwTabView = this.$refs.bwtabview as ComponentPublicInstance;
     if (!bwTabView) {
       return;
@@ -79,7 +88,7 @@ export default defineComponent({
       console.log('resize');
     })
 
-    const container = this.getElement(this.$refs.bwtabview).querySelector('.p-tabview-nav-content');
+    const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
     if (!container) {
       return;
     }
@@ -89,7 +98,7 @@ export default defineComponent({
 
     primary?.insertAdjacentHTML('beforeend', `
       <li class="p-tabview-header p-tabview-nav-more">
-        <a class="p-tabview-nav-link p-tabview-header-action" @click="onToggleMenu">
+        <a class="p-tabview-nav-link p-tabview-header-action">
           <span class="p-tabview-title" data-pc-section="headertitle">More</span>
         </a>
         <ul class="p-tabview-nav p-tabview-nav-more-list">
@@ -104,51 +113,17 @@ export default defineComponent({
     const moreLi = container.querySelector('.p-tabview-nav-more');
     const moreBtn = moreLi?.querySelector('a');
 
-    // moreBtn?.addEventListener('click', (e) => {
-    //   e.preventDefault()
-    //   this.onToggleMenu(e);
-    //   console.log('click');
-    //   // container.classList.toggle('p-tabview-secondary')
-    //   // moreBtn.setAttribute('aria-expanded', `${container.classList.contains('p-tabview-secondary')}`)
-    // })
-
-    const doAdapt = () => {
-      // reveal all items for the calculation
-      allItems.forEach((item) => {
-        item.classList.remove('--hidden')
-      })
-
-      // hide items that won't fit in the Primary
-      let stopWidth = moreBtn?.offsetWidth
-      let hiddenItems = [] as any[]
-      const primaryWidth = primary?.offsetWidth
-      primaryItems.forEach((item, i) => {
-        if (primaryWidth >= stopWidth + item.offsetWidth) {
-          stopWidth += item.offsetWidth
-        } else {
-          item.classList.add('--hidden')
-          hiddenItems.push(i)
-        }
-      })
-
-      // toggle the visibility of More button and items in Secondary
-      if (!hiddenItems.length) {
-        moreLi?.classList.add('--hidden')
-        container.classList.remove('--show-secondary')
-        moreBtn?.setAttribute('aria-expanded', 'false')
-      }
-      else {
-        secondaryItems?.forEach((item, i) => {
-          if (!hiddenItems.includes(i)) {
-            item.classList.add('--hidden')
-          }
-        })
-      }
-    }
-
-    window.addEventListener('resize', doAdapt)
+    moreBtn?.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault()
+      this.onToggleMenu(e);
+      // container.classList.toggle('p-tabview-secondary')
+      // moreBtn.setAttribute('aria-expanded', `${container.classList.contains('p-tabview-secondary')}`)
+    })
   },
   computed: {
+    tabsMenu(): Array<MenuItem> {
+      return this.tabs?.map((item, i) => ({ ...item, command: (event) => { this.onCommand(event, i)} })) ?? [];
+    },
     tabs() {
       return this.$slots.default?.().reduce((tabs, vnode) => {
         if (typeof vnode.type === 'string') {
@@ -179,30 +154,33 @@ export default defineComponent({
   },
 
   methods: {
-    onSlotInfo() {
-      console.log(this.tabs);
-      (this.$refs.menu as any).toggle();
-    },
-
-    getElement(item: any): Element {
-      return (item as any).$el;
-    },
-
     isTabPanel(vnode: any) {
       return [TabPanel, BWTabPanel].includes(vnode.type);
     },
 
+    onCommand(event: MenuItemCommandEvent, index: number) {
+      console.log(index, event);
+      this.active = index;
+    },
+
+    onSlotInfo() {
+      console.log(this.tabs);
+      console.log(this.tabsMenu)
+    },
+
     onToggleMenu(event: any) {
-      console.log('menu');
-      console.log(this.$refs.menu);
+      // console.log('menu');
       (this.$refs.menu as any).toggle(event);
-      // menu.value.toggle(event);
-    }
+    },
   },
 })
 </script>
 
 <style lang="css">
+.bwtabview-menu .bwtabview-menuitem {
+  padding: 1.25rem;
+}
+
 .p-tabview-nav-content {
   position: relative;
   /* overflow: visible; */
@@ -222,11 +200,11 @@ export default defineComponent({
 .p-tabview-nav-more-list .show {
   display: block;
 }
-
+/*
 .p-tabview-secondary {}
 
 .p-tabview-nav {}
 
-.p-tabview-nav-more {}
+.p-tabview-nav-more {} */
 </style>
 

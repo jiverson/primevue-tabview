@@ -2,11 +2,20 @@
 <template>
   <div style="background-color: white; padding: 2rem">
     <BWTabView style="border: 1px solid red">
-      <BWTabPanel v-for=" tab in 6" :key="tab" :header="`Header ${tab}`">
+      <BWTabPanel v-for=" tab in 7" :key="tab" :header="`Header ${tab}`">
         <p>{{ tab }} Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
           alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
           itaque quam delectus.</p>
       </BWTabPanel>
+      <TabPanel>
+        <template #header>
+          <div class="bwtabview-menuitem" style="font-weight: 700; color: blue; line-height: 1;white-space: nowrap;">Amy Rodchester</div>
+        </template>
+        <p>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+        </p>
+      </TabPanel>
     </BWTabView>
 
     <div style="display: flex; gap: 1rem; padding-top: 1rem">
