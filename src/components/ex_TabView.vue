@@ -1,9 +1,11 @@
 
 <template>
   <div style="background-color: white; padding: 2rem">
-    <BWTabView style="border: 1px solid red; border-radius: 4px; padding: 1rem">
-      <BWTabPanel v-for="tab in 15" :key="tab" :header="`Header ${tab}`">
-        <p>Some Content {{ tab }}</p>
+    <BWTabView style="border: 1px solid red">
+      <BWTabPanel v-for=" tab in 6" :key="tab" :header="`Header ${tab}`">
+        <p>{{ tab }} Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
+          alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
+          itaque quam delectus.</p>
       </BWTabPanel>
     </BWTabView>
 

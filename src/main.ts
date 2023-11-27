@@ -3,15 +3,19 @@ import PrimeVue from 'primevue/config'
 import App from './App.vue'
 
 import './assets/main.css'
-import 'primevue/resources/themes/saga-blue/theme.css'
+import 'primevue/resources/themes/lara-light-blue/theme.css'
 import 'primevue/resources/primevue.min.css'
 
+import './assets/primevue-custom.css'
+
 import Button from 'primevue/button'
+import Menu from 'primevue/menu'
+import Ripple from 'primevue/ripple'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 
 const app = createApp(App)
-app.use(PrimeVue)
+app.use(PrimeVue, { ripple: true })
 
 // This has to come first, otherwise the TabView component will not be
 // ;(TabView as any).methods.isTabPanel = (child: any) => {
@@ -42,7 +46,10 @@ app.use(PrimeVue)
 // }
 
 app.component('Button', Button)
+app.component('Menu', Menu)
 app.component('TabView', TabView)
 app.component('TabPanel', TabPanel)
+
+app.directive('ripple', Ripple)
 
 app.mount('#app')
