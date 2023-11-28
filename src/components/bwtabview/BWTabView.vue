@@ -73,7 +73,7 @@ export default defineComponent({
     const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
     const primary = container.querySelector('.p-tabview-nav');
     this.pp = primary;
-    const primaryItems = container.querySelectorAll('.p-tabview-nav > li.p-tabview-header');
+    const primaryItems = container.querySelectorAll('.p-tabview-nav > li.p-tabview-header:not(.p-tabview-nav-more)');
 
     useResizeObserver(bwTabView, (entries) => {
       this.resizer = () => {
