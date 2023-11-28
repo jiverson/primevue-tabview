@@ -15,7 +15,7 @@
     <Button @click="onSlotInfo">All Slots</Button>
 
     <!-- TODO: Primevue issue: https://github.com/primefaces/primevue/issues/3498 -->
-    <Menu ref="menu" id="overlay_menu" :model="tabsMenu" :popup="true" class="bwtabview-menu">
+    <Menu ref="bwtabmenu" id="overlay_menu" :model="tabsMenu" :popup="true" class="bwtabview-menu">
       <template #item="{ item, props }">
         <a v-if="item.props?.header" style="padding: 1.25rem; font-weight: 700; color: #6b7280;" v-ripple v-bind="props.action">
           <span class="p-tabview-title">{{ item.props.header }}</span>
@@ -27,39 +27,26 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, type VNode, type ComponentPublicInstance } from 'vue';
+import { defineComponent, type VNode, type ComponentPublicInstance, h, render, cloneVNode } from 'vue';
 import TabPanel from 'primevue/tabpanel';
 import { BWTabPanel } from '@/components/bwtabview/BWTabPanel';
 import { useResizeObserver } from '@vueuse/core';
 import type { MenuItem, MenuItemCommandEvent } from 'primevue/menuitem';
+import BWTabMoreBtn from '@/components/bwtabview/BWTabMoreBtn.vue';
 /**
  * https://css-tricks.com/container-adapting-tabs-with-more-button/
  * https://dev.to/thomasferro/composition-api-v-renderless-components-let-s-use-vue-3-s-features-to-clean-our-components-n25
  * https://blog.logrocket.com/making-components-dynamic-vue-3/
  * https://stackoverflow.com/questions/74406010/how-to-check-slot-or-vnode-type-in-vue3-render-function
  * https://github.com/primefaces/primevue/issues/3498
+ * https://stackoverflow.com/questions/69488256/vue-3-append-component-to-the-dom-best-practice
+ * https://github.com/vuejs/core/issues/1082
  */
-
-//  {
-//   "action": {
-//     "class": "p-menuitem-link",
-//     "tabindex": "-1",
-//     "aria-hidden": true,
-//     "data-pc-section": "action"
-//   },
-//   "icon": {
-//     "class": "p-menuitem-icon",
-//     "data-pc-section": "icon"
-//   },
-//   "label": {
-//     "class": "p-menuitem-text",
-//     "data-pc-section": "label"
-//   }
-// }
-
-
 export default defineComponent({
   name: 'BWTabView',
+  components: {
+    BWTabMoreBtn,
+  },
   props: {
     maxNumberOfTabs: {
       type: Number,
@@ -69,31 +56,26 @@ export default defineComponent({
   data() {
     return {
       active: 0,
+      headerTitle: 'foo',
       hiddenItems: [] as any[],
-      resizer: () => {},
+      resizer: () => undefined,
+      vueComponent: null as any,
+      pp: null as any,
     }
   },
   mounted() {
-    const bwTabView = this.$refs.bwtabview as ComponentPublicInstance;
-    if (!bwTabView) {
-      return;
-    }
+    const bwTabView = this.$refs.bwtabview as ComponentPublicInstance & { scrollInView: () => void };
+    const bwTabMenu = this.$refs.bwtabmenu as ComponentPublicInstance;
 
-    (bwTabView as any).scrollInView = () => {
-      console.log('override');
-    }
-
-    const bwTabMenu = this.$refs.menu as ComponentPublicInstance;
-    if (!bwTabMenu) {
-      return;
-    }
+    // TODO: May not need this
+    bwTabView.scrollInView = () => { console.log('override') }
 
     const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
     const primary = container.querySelector('.p-tabview-nav');
+    this.pp = primary;
     const primaryItems = container.querySelectorAll('.p-tabview-nav > li.p-tabview-header');
 
     useResizeObserver(bwTabView, (entries) => {
-
       this.resizer = () => {
         console.log('resizer');
         const entry = entries[0];
@@ -109,20 +91,20 @@ export default defineComponent({
         })
 
         this.hiddenItems = [];
-        console.log(primaryItems)
+        // console.log(primaryItems)
 
 
         primaryItems.forEach((item: any, i: number) => {
           if (primaryWidth >= (stopWidth + item.offsetWidth)) {
             stopWidth += item.offsetWidth
           } else {
-            console.log('hidden', i)
+            // console.log('hidden', i)
             item.classList.add('hidden')
             this.hiddenItems.push(i)
           }
         })
 
-        console.log(this.hiddenItems)
+        // console.log(this.hiddenItems)
 
         if (!this.hiddenItems.length) {
           moreBtn?.classList.add('hidden')
@@ -134,34 +116,32 @@ export default defineComponent({
       this.resizer();
     })
 
-    primary?.insertAdjacentHTML('beforeend', `
-      <li class="p-tabview-header p-tabview-nav-more">
-        <a class="p-tabview-nav-link p-tabview-header-action">
-          <span class="p-tabview-title" data-pc-section="headertitle">More</span>
-        </a>
-      </li>
-    `);
+
+    const addButton = () => {
+      this.vueComponent = h(BWTabMoreBtn, {
+        onClickMore: this.onToggleMenu,
+        headerTitle: this.headerTitle,
+      });
+      // this.vueComponent.appContext = { ...appContext };
+
+      render(this.vueComponent, primary);
+
+    }
+
+    addButton();
+
+    // primary?.insertAdjacentHTML('beforeend', `
+    //   <li class="p-tabview-header p-tabview-nav-more">
+    //     <a class="p-tabview-nav-link p-tabview-header-action">
+    //       <span class="p-tabview-title" data-pc-section="headertitle">More</span>
+    //     </a>
+    //   </li>
+    // `);
 
     const moreLi = container.querySelector('.p-tabview-nav-more');
-    const moreBtn = moreLi?.querySelector('a');
-
-    moreBtn?.addEventListener('click', (e: MouseEvent) => {
-      e.preventDefault()
-      this.onToggleMenu(e);
-      // container.classList.toggle('p-tabview-secondaary')
-      // moreBtn.setAttribute('aria-expanded', `${container.classList.contains('p-tabview-secondary')}`)
-    })
+    const moreBtn = moreLi?.querySelector('a')
   },
   computed: {
-    tabsMenu1(): Array<MenuItem> {
-      return this.tabs.map((item, i) => {
-        console.log(this.hiddenItems[0])
-        return {
-          ...item,
-          command: (event) => { this.onCommand(event, i)}
-        }
-      });
-    },
     tabsMenu(): Array<MenuItem> {
       return this.tabs.reduce((tabs, item, i) => {
         // console.log(this.hiddenItems[0], i)
@@ -218,6 +198,13 @@ export default defineComponent({
     onCommand(event: MenuItemCommandEvent, index: number) {
       console.log(index, event);
       this.active = index;
+      const headerTitle = this.tabs[index].props.header ?? this.tabs[index].children?.header;
+      console.log('---------------->', headerTitle);
+
+      this.headerTitle = headerTitle;
+
+      const cloned = cloneVNode(this.vueComponent, { headerTitle })
+      render(cloned as any, this.pp);
     },
 
     onSlotInfo() {
@@ -226,14 +213,13 @@ export default defineComponent({
     },
 
     onToggleMenu(event: any) {
-      // console.log('menu');
-      (this.$refs.menu as any).toggle(event);
+      (this.$refs.bwtabmenu as any).toggle(event);
     },
   },
 
   watch: {
     active() {
-      console.log('active')
+      console.log('active trigger')
 
       this.$nextTick(() => {
         this.resizer();
