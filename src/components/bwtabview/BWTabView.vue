@@ -13,13 +13,6 @@
       </template>
     </TabView>
     <Button @click="onSlotInfo">All Slots</Button>
-    <!-- <Menu ref="menu" id="overlay_menu" :model="tabsMenu" :popup="true">
-      <template #item="{ item, props }">
-        <a style="padding: 1.25rem; font-weight: 700; color: #6b7280;" v-ripple v-bind="props.action">
-          <span class="p-tabview-title">{{ item.label }}</span>
-        </a>
-      </template>
-    </Menu> -->
 
     <!-- TODO: Primevue issue: https://github.com/primefaces/primevue/issues/3498 -->
     <Menu ref="menu" id="overlay_menu" :model="tabsMenu" :popup="true" class="bwtabview-menu">
@@ -76,6 +69,8 @@ export default defineComponent({
   data() {
     return {
       active: 0,
+      hiddenItems: [] as any[],
+      resizer: () => {},
     }
   },
   mounted() {
@@ -84,47 +79,109 @@ export default defineComponent({
       return;
     }
 
-    useResizeObserver(bwTabView, () => {
-      console.log('resize');
-    })
+    (bwTabView as any).scrollInView = () => {
+      console.log('override');
+    }
 
-    const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
-    if (!container) {
+    const bwTabMenu = this.$refs.menu as ComponentPublicInstance;
+    if (!bwTabMenu) {
       return;
     }
 
+    const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
     const primary = container.querySelector('.p-tabview-nav');
-    const primaryItems = container.querySelectorAll('.p-tabview-nav > li:not(.p-tabview-nav-more)');
+    const primaryItems = container.querySelectorAll('.p-tabview-nav > li.p-tabview-header');
+
+    useResizeObserver(bwTabView, (entries) => {
+
+      this.resizer = () => {
+        console.log('resizer');
+        const entry = entries[0];
+        const { width } = entry.contentRect;
+        let primaryWidth = width;
+        if (!primaryWidth) {
+          primaryWidth = bwTabView.$el.offsetWidth;
+        }
+        let stopWidth = moreBtn?.offsetWidth
+
+        primaryItems.forEach((item: any) => {
+          item.classList.remove('hidden')
+        })
+
+        this.hiddenItems = [];
+        console.log(primaryItems)
+
+
+        primaryItems.forEach((item: any, i: number) => {
+          if (primaryWidth >= (stopWidth + item.offsetWidth)) {
+            stopWidth += item.offsetWidth
+          } else {
+            console.log('hidden', i)
+            item.classList.add('hidden')
+            this.hiddenItems.push(i)
+          }
+        })
+
+        console.log(this.hiddenItems)
+
+        if (!this.hiddenItems.length) {
+          moreBtn?.classList.add('hidden')
+        } else {
+          moreBtn?.classList.remove('hidden')
+        }
+      }
+
+      this.resizer();
+    })
 
     primary?.insertAdjacentHTML('beforeend', `
       <li class="p-tabview-header p-tabview-nav-more">
         <a class="p-tabview-nav-link p-tabview-header-action">
           <span class="p-tabview-title" data-pc-section="headertitle">More</span>
         </a>
-        <ul class="p-tabview-nav p-tabview-nav-more-list">
-          ${primary.innerHTML}
-        </ul>
       </li>
     `);
 
-    const secondary = container.querySelector('.p-tabview-nav-more-list');
-    const secondaryItems = secondary?.querySelectorAll('li');
-    const allItems = container.querySelectorAll('.p-tabview-nav > li');
     const moreLi = container.querySelector('.p-tabview-nav-more');
     const moreBtn = moreLi?.querySelector('a');
 
     moreBtn?.addEventListener('click', (e: MouseEvent) => {
       e.preventDefault()
       this.onToggleMenu(e);
-      // container.classList.toggle('p-tabview-secondary')
+      // container.classList.toggle('p-tabview-secondaary')
       // moreBtn.setAttribute('aria-expanded', `${container.classList.contains('p-tabview-secondary')}`)
     })
   },
   computed: {
-    tabsMenu(): Array<MenuItem> {
-      return this.tabs?.map((item, i) => ({ ...item, command: (event) => { this.onCommand(event, i)} })) ?? [];
+    tabsMenu1(): Array<MenuItem> {
+      return this.tabs.map((item, i) => {
+        console.log(this.hiddenItems[0])
+        return {
+          ...item,
+          command: (event) => { this.onCommand(event, i)}
+        }
+      });
     },
-    tabs() {
+    tabsMenu(): Array<MenuItem> {
+      return this.tabs.reduce((tabs, item, i) => {
+        // console.log(this.hiddenItems[0], i)
+        if (!this.hiddenItems.includes(i)) {
+          return tabs;
+        }
+
+        tabs.push(
+          {
+            ...item,
+            command: (event) => { this.onCommand(event, i)}
+          } as MenuItem
+        )
+
+        return tabs;
+      }, []);
+    },
+
+
+    tabs(): Array<any> {
       return this.$slots.default?.().reduce((tabs, vnode) => {
         if (typeof vnode.type === 'string') {
           // Ignore
@@ -149,7 +206,7 @@ export default defineComponent({
 
         // Ignore everything else
         return tabs;
-      }, [] as any[])
+      }, [] as Array<any>) ?? []
     }
   },
 
@@ -173,6 +230,16 @@ export default defineComponent({
       (this.$refs.menu as any).toggle(event);
     },
   },
+
+  watch: {
+    active() {
+      console.log('active')
+
+      this.$nextTick(() => {
+        this.resizer();
+      })
+    }
+  }
 })
 </script>
 
@@ -199,6 +266,10 @@ export default defineComponent({
 
 .p-tabview-nav-more-list .show {
   display: block;
+}
+
+.hidden {
+  display: none;
 }
 /*
 .p-tabview-secondary {}
