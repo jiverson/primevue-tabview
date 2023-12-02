@@ -14,15 +14,8 @@
     </TabView>
 
     <!-- TODO: Primevue issue: https://github.com/primefaces/primevue/issues/3498 -->
-    <Menu
-      id="overlay_menu"
-      ref="bwtabmenu"
-      :model="tabsMenu"
-      :popup="true"
-      class="bwtabview-menu"
-      @blur="onToggleExpand(false)"
-      @focus="onToggleExpand(true)"
-    >
+    <Menu id="overlay_menu" ref="bwtabmenu" :model="tabsMenu" :popup="true" class="bwtabview-menu"
+      @blur="onToggleExpand(false)" @focus="onToggleExpand(true)">
       <template #item="{ item }">
         <a v-if="item.props?.header" v-ripple style="padding: 1.25rem; font-weight: 700; color: #6b7280">
           <span class="p-tabview-title">{{ item.props.header }}</span>
@@ -68,9 +61,9 @@ export default defineComponent({
   data() {
     return {
       active: 0,
-      forceResize: () => {},
+      forceResize: () => { },
       hiddenItems: [] as Array<number>,
-      stopResize: () => {},
+      stopResize: () => { },
       updateMore: undefined as unknown as (props?: MoreBtnProps) => void,
     };
   },
@@ -235,6 +228,7 @@ export default defineComponent({
 .hidden {
   display: none;
 }
+
 /*
 .p-tabview-secondary {}
 

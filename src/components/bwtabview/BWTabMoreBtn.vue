@@ -1,21 +1,21 @@
 <template>
-  <a
-    class="p-tabview-nav-link p-tabview-header-action"
-    aria-haspopup="true"
-    :aria-expanded="expanded"
-    @click="$emit('click-more', $event)"
-  >
+  <a class="p-tabview-nav-link p-tabview-header-action" aria-haspopup="true" :aria-expanded="expanded"
+    @click="$emit('click-more', $event)">
     <span class="p-tabview-title" data-pc-section="headertitle">{{ headerTitle }}</span>
-    <i class="i-ic:round-expand-more tab-icon" :class="{ expanded: expanded }"></i>
-    <!-- <i :class="{ ' i-ic:round-expand-more': !expanded, 'i-ic:round-expand-less': expanded }"></i> -->
+    <Icon icon="ic:baseline-expand-more" class="tab-icon" :class="{ expanded }" />
+    <!-- <i class="i-ic:round-expand-more tab-icon" :class="{ expanded }"></i> -->
   </a>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { Icon } from '@iconify/vue';
 
 export default defineComponent({
   name: 'BWTabMoreBtn',
+  components: {
+    Icon,
+  },
   props: {
     expanded: {
       type: Boolean,
@@ -32,7 +32,8 @@ export default defineComponent({
 
 <style scoped lang="css">
 .tab-icon {
-  transition: transform 0.2s ease 0.05s;
+  font-size: 1.5rem;
+  transition: transform 0.25s ease-in-out;
 }
 
 .tab-icon.expanded {
