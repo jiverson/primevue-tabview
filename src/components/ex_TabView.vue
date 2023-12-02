@@ -7,14 +7,14 @@
           alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
           itaque quam delectus.</p>
       </BWTabPanel>
-      <TabPanel>
+      <BWTabPanel>
         <template #header>
           <div class="bwtabview-menuitem" style="font-weight: 700; color: blue; line-height: 1;white-space: nowrap;">Amy Rodchester</div>
         </template>
         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
           alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
           itaque quam delectus.</p>
-      </TabPanel>
+      </BWTabPanel>
     </BWTabView>
 
     <div style="display: flex; gap: 1rem; padding-top: 1rem">

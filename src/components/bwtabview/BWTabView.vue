@@ -1,6 +1,6 @@
 <template>
   <div>
-    <TabView ref="bwtabview" :scrollable="false" v-model:activeIndex="active">
+    <TabView ref="bwtabview" v-model:activeIndex="active" :scrollable="false">
       <template v-for="(panel, _index) of tabs" :key="_index">
         <TabPanel v-bind="panel.props">
           <template #header>
@@ -12,27 +12,35 @@
         </TabPanel>
       </template>
     </TabView>
-    <Button @click="onSlotInfo">All Slots</Button>
 
     <!-- TODO: Primevue issue: https://github.com/primefaces/primevue/issues/3498 -->
-    <Menu ref="bwtabmenu" id="overlay_menu" :model="tabsMenu" :popup="true" class="bwtabview-menu">
-      <template #item="{ item, props }">
-        <a v-if="item.props?.header" style="padding: 1.25rem; font-weight: 700; color: #6b7280;" v-ripple v-bind="props.action">
+    <Menu
+      id="overlay_menu"
+      ref="bwtabmenu"
+      :model="tabsMenu"
+      :popup="true"
+      class="bwtabview-menu"
+      @blur="onToggleExpand(false)"
+      @focus="onToggleExpand(true)"
+    >
+      <template #item="{ item }">
+        <a v-if="item.props?.header" v-ripple style="padding: 1.25rem; font-weight: 700; color: #6b7280">
           <span class="p-tabview-title">{{ item.props.header }}</span>
         </a>
-        <component v-else :is="item.children?.header" />
+        <component :is="item.children?.header" v-else />
       </template>
     </Menu>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, type VNode, type ComponentPublicInstance, h, render, cloneVNode } from 'vue';
-import TabPanel from 'primevue/tabpanel';
-import { BWTabPanel } from '@/components/bwtabview/BWTabPanel';
-import { useResizeObserver } from '@vueuse/core';
+import { cloneVNode, type ComponentPublicInstance, defineComponent, h, render, type VNode } from 'vue';
 import type { MenuItem, MenuItemCommandEvent } from 'primevue/menuitem';
 import BWTabMoreBtn from '@/components/bwtabview/BWTabMoreBtn.vue';
+import { BWTabPanel } from '@/components/bwtabview/BWTabPanel';
+import Menu from 'primevue/menu';
+import TabPanel from 'primevue/tabpanel';
+import { useMenuResizer } from '@/composables/menuResizer';
 /**
  * https://css-tricks.com/container-adapting-tabs-with-more-button/
  * https://dev.to/thomasferro/composition-api-v-renderless-components-let-s-use-vue-3-s-features-to-clean-our-components-n25
@@ -42,6 +50,10 @@ import BWTabMoreBtn from '@/components/bwtabview/BWTabMoreBtn.vue';
  * https://stackoverflow.com/questions/69488256/vue-3-append-component-to-the-dom-best-practice
  * https://github.com/vuejs/core/issues/1082
  */
+
+type MoreBtnProps = InstanceType<typeof BWTabMoreBtn>['$props'];
+type MenuType = InstanceType<typeof Menu>;
+
 export default defineComponent({
   name: 'BWTabView',
   components: {
@@ -50,144 +62,107 @@ export default defineComponent({
   props: {
     maxNumberOfTabs: {
       type: Number,
-      default: 3
+      default: 3,
     },
   },
   data() {
     return {
       active: 0,
-      headerTitle: 'foo',
-      hiddenItems: [] as any[],
-      resizer: () => undefined,
-      vueComponent: null as any,
-      pp: null as any,
-    }
-  },
-  mounted() {
-    const bwTabView = this.$refs.bwtabview as ComponentPublicInstance & { scrollInView: () => void };
-    const bwTabMenu = this.$refs.bwtabmenu as ComponentPublicInstance;
-
-    // TODO: May not need this
-    bwTabView.scrollInView = () => { console.log('override') }
-
-    const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
-    const primary = container.querySelector('.p-tabview-nav');
-    this.pp = primary;
-    const primaryItems = container.querySelectorAll('.p-tabview-nav > li.p-tabview-header:not(.p-tabview-nav-more)');
-
-    useResizeObserver(bwTabView, (entries) => {
-      this.resizer = () => {
-        console.log('resizer');
-        const entry = entries[0];
-        const { width } = entry.contentRect;
-        let primaryWidth = width;
-        if (!primaryWidth) {
-          primaryWidth = bwTabView.$el.offsetWidth;
-        }
-        let stopWidth = moreBtn?.offsetWidth
-
-        primaryItems.forEach((item: any) => {
-          item.classList.remove('hidden')
-        })
-
-        this.hiddenItems = [];
-        // console.log(primaryItems)
-
-
-        primaryItems.forEach((item: any, i: number) => {
-          if (primaryWidth >= (stopWidth + item.offsetWidth)) {
-            stopWidth += item.offsetWidth
-          } else {
-            // console.log('hidden', i)
-            item.classList.add('hidden')
-            this.hiddenItems.push(i)
-          }
-        })
-
-        // console.log(this.hiddenItems)
-
-        if (!this.hiddenItems.length) {
-          moreBtn?.classList.add('hidden')
-        } else {
-          moreBtn?.classList.remove('hidden')
-        }
-      }
-
-      this.resizer();
-    })
-
-
-    const addButton = () => {
-      this.vueComponent = h(BWTabMoreBtn, {
-        onClickMore: this.onToggleMenu,
-        headerTitle: this.headerTitle,
-      });
-      // this.vueComponent.appContext = { ...appContext };
-
-      render(this.vueComponent, primary);
-
-    }
-
-    addButton();
-
-    // primary?.insertAdjacentHTML('beforeend', `
-    //   <li class="p-tabview-header p-tabview-nav-more">
-    //     <a class="p-tabview-nav-link p-tabview-header-action">
-    //       <span class="p-tabview-title" data-pc-section="headertitle">More</span>
-    //     </a>
-    //   </li>
-    // `);
-
-    const moreLi = container.querySelector('.p-tabview-nav-more');
-    const moreBtn = moreLi?.querySelector('a')
+      forceResize: () => {},
+      hiddenItems: [] as Array<number>,
+      stopResize: () => {},
+      updateMore: undefined as unknown as (props?: MoreBtnProps) => void,
+    };
   },
   computed: {
+    tabs(): Array<any> {
+      return (
+        this.$slots.default?.().reduce((tabs, vnode) => {
+          if (typeof vnode.type === 'string') {
+            // Ignore
+            return tabs;
+          }
+
+          if (this.isTabPanel(vnode)) {
+            tabs.push(vnode);
+            return tabs;
+          }
+
+          if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
+            // Fragment
+            vnode.children.forEach((child) => {
+              if (this.isTabPanel(child)) {
+                tabs.push(child as VNode);
+              }
+            });
+
+            return tabs;
+          }
+
+          // Ignore everything else
+          return tabs;
+        }, [] as Array<any>) ?? []
+      );
+    },
+
     tabsMenu(): Array<MenuItem> {
       return this.tabs.reduce((tabs, item, i) => {
-        // console.log(this.hiddenItems[0], i)
         if (!this.hiddenItems.includes(i)) {
           return tabs;
         }
 
-        tabs.push(
-          {
-            ...item,
-            command: (event) => { this.onCommand(event, i)}
-          } as MenuItem
-        )
+        tabs.push({
+          ...item,
+          command: (event) => {
+            this.onCommand(event, i);
+          },
+        } as MenuItem);
 
         return tabs;
       }, []);
     },
+  },
 
+  watch: {
+    active() {
+      this.$nextTick(this.forceResize);
+    },
+  },
 
-    tabs(): Array<any> {
-      return this.$slots.default?.().reduce((tabs, vnode) => {
-        if (typeof vnode.type === 'string') {
-          // Ignore
-          return tabs
-        }
+  mounted() {
+    const bwTabView = this.$refs.bwtabview as ComponentPublicInstance & { scrollInView: () => void };
+    // const bwTabMenu = this.$refs.bwtabmenu as ComponentPublicInstance;
+    // TODO: May not need this
+    bwTabView.scrollInView = () => {
+      /* noop */
+    };
 
-        if (this.isTabPanel(vnode)) {
-          tabs.push(vnode)
-          return tabs
-        }
+    const container = bwTabView.$el.querySelector('.p-tabview-nav-content');
+    const primary = container.querySelector('.p-tabview-nav');
 
-        if (typeof vnode.type === 'symbol' && Array.isArray(vnode.children)) {
-          // Fragment
-          vnode.children.forEach((child) => {
-            if (this.isTabPanel(child)) {
-              tabs.push(child as VNode)
-            }
-          })
+    const moreContainer = primary.insertAdjacentElement('beforeend', document.createElement('li'));
+    moreContainer.classList.add('p-tabview-header', 'p-tabview-nav-more');
 
-          return tabs
-        }
+    let moreComponent = h(BWTabMoreBtn, {
+      onClickMore: this.onToggleMenu,
+    });
 
-        // Ignore everything else
-        return tabs;
-      }, [] as Array<any>) ?? []
-    }
+    this.updateMore = (props?: MoreBtnProps) => {
+      moreComponent = props ? cloneVNode(moreComponent, props) : moreComponent;
+      render(moreComponent, moreContainer);
+    };
+    this.updateMore();
+
+    const primaryItems = primary.querySelectorAll('.p-tabview-nav > li.p-tabview-header:not(.p-tabview-nav-more)');
+
+    const { hiddenItems, stop, forceResize } = useMenuResizer(bwTabView, primaryItems, moreContainer);
+    this.hiddenItems = hiddenItems;
+    this.forceResize = forceResize;
+    this.stopResize = stop;
+  },
+
+  unmounted() {
+    this.stopResize();
   },
 
   methods: {
@@ -196,40 +171,43 @@ export default defineComponent({
     },
 
     onCommand(event: MenuItemCommandEvent, index: number) {
-      console.log(index, event);
+      console.log(event);
       this.active = index;
       const headerTitle = this.tabs[index].props.header ?? this.tabs[index].children?.header;
-      console.log('---------------->', headerTitle);
-
-      this.headerTitle = headerTitle;
-
-      const cloned = cloneVNode(this.vueComponent, { headerTitle })
-      render(cloned as any, this.pp);
+      this.updateMore({ headerTitle });
     },
 
-    onSlotInfo() {
-      console.log(this.tabs);
-      console.log(this.tabsMenu)
+    onToggleExpand(expanded: boolean) {
+      this.updateMore({ expanded });
     },
 
-    onToggleMenu(event: any) {
-      (this.$refs.bwtabmenu as any).toggle(event);
+    onToggleMenu(event: Event) {
+      (this.$refs.bwtabmenu as MenuType).toggle(event);
     },
   },
-
-  watch: {
-    active() {
-      console.log('active trigger')
-
-      this.$nextTick(() => {
-        this.resizer();
-      })
-    }
-  }
-})
+});
 </script>
 
 <style lang="css">
+.p-tabview .p-tabview-nav li .p-tabview-nav-link:not(.p-disabled):focus {
+  outline: 0;
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link:not(.p-disabled):focus:after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border: 3px solid var(--primary-200);
+  border-bottom-width: 0;
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  height: 100%;
+}
+
 .bwtabview-menu .bwtabview-menuitem {
   padding: 1.25rem;
 }
@@ -264,4 +242,3 @@ export default defineComponent({
 
 .p-tabview-nav-more {} */
 </style>
-
