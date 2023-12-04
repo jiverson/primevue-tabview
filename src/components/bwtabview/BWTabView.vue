@@ -15,9 +15,9 @@
 
     <!-- TODO: Primevue issue: https://github.com/primefaces/primevue/issues/3498 -->
     <Menu id="overlay_menu" ref="bwtabmenu" :model="tabsMenu" :popup="true" class="bwtabview-menu"
-      @blur="onToggleExpand(false)" @focus="onToggleExpand(true)">
+      @show="onToggleExpand(true)" @hide="onToggleExpand(false)">
       <template #item="{ item }">
-        <a v-if="item.props?.header" v-ripple style="padding: 1.25rem; font-weight: 700; color: #6b7280">
+        <a v-if="item.props?.header" v-ripple class="p-menuitem-link">
           <span class="p-tabview-title">{{ item.props.header }}</span>
         </a>
         <component :is="item.children?.header" v-else />
@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import { cloneVNode, type ComponentPublicInstance, defineComponent, h, render, type VNode } from 'vue';
+import { cloneVNode, type ComponentPublicInstance, defineComponent, h, render, type VNode, type Slot } from 'vue';
 import type { MenuItem, MenuItemCommandEvent } from 'primevue/menuitem';
 import BWTabMoreBtn from '@/components/bwtabview/BWTabMoreBtn.vue';
 import { BWTabPanel } from '@/components/bwtabview/BWTabPanel';
@@ -45,7 +45,7 @@ import { useMenuResizer } from '@/composables/menuResizer';
  */
 
 type MoreBtnProps = InstanceType<typeof BWTabMoreBtn>['$props'];
-type MenuType = InstanceType<typeof Menu>;
+type MenuType = InstanceType<typeof Menu> & ComponentPublicInstance;
 
 export default defineComponent({
   name: 'BWTabView',
@@ -64,7 +64,7 @@ export default defineComponent({
       forceResize: () => { },
       hiddenItems: [] as Array<number>,
       stopResize: () => { },
-      updateMore: undefined as unknown as (props?: MoreBtnProps) => void,
+      updateMore: undefined as unknown as (props?: MoreBtnProps, children?: Slot) => void,
     };
   },
   computed: {
@@ -124,7 +124,9 @@ export default defineComponent({
 
   mounted() {
     const bwTabView = this.$refs.bwtabview as ComponentPublicInstance & { scrollInView: () => void };
-    // const bwTabMenu = this.$refs.bwtabmenu as ComponentPublicInstance;
+    const bwTabMenu = this.$refs.bwtabmenu as MenuType;
+
+    // console.log(bwTabMenu.$el)
     // TODO: May not need this
     bwTabView.scrollInView = () => {
       /* noop */
@@ -136,11 +138,22 @@ export default defineComponent({
     const moreContainer = primary.insertAdjacentElement('beforeend', document.createElement('li'));
     moreContainer.classList.add('p-tabview-header', 'p-tabview-nav-more');
 
-    let moreComponent = h(BWTabMoreBtn, {
-      onClickMore: this.onToggleMenu,
-    });
+    // let moreComponent = h(BWTabMoreBtn, {
+    //   onClickMore: this.onClickMore,
+    // });
 
-    this.updateMore = (props?: MoreBtnProps) => {
+    let moreComponent: VNode;
+
+    const moreComponentFn = (children?: Slot) => h(BWTabMoreBtn, {
+      onClickMore: this.onClickMore,
+    }, children);
+
+    this.updateMore = (props?: MoreBtnProps, children?: Slot) => {
+      console.log(props, children);
+      if (!moreComponent || children) {
+        moreComponent = moreComponentFn(children);
+      }
+
       moreComponent = props ? cloneVNode(moreComponent, props) : moreComponent;
       render(moreComponent, moreContainer);
     };
@@ -163,19 +176,20 @@ export default defineComponent({
       return [TabPanel, BWTabPanel].includes(vnode.type);
     },
 
+    onClickMore(event: Event) {
+      (this.$refs.bwtabmenu as MenuType).toggle(event);
+    },
+
     onCommand(event: MenuItemCommandEvent, index: number) {
       console.log(event);
       this.active = index;
-      const headerTitle = this.tabs[index].props.header ?? this.tabs[index].children?.header;
-      this.updateMore({ headerTitle });
+      const headerTitle = this.tabs[index].props?.header;
+      console.log(headerTitle);
+      this.updateMore({ headerTitle }, this.tabs[index].children?.header);
     },
 
     onToggleExpand(expanded: boolean) {
       this.updateMore({ expanded });
-    },
-
-    onToggleMenu(event: Event) {
-      (this.$refs.bwtabmenu as MenuType).toggle(event);
     },
   },
 });
@@ -201,8 +215,18 @@ export default defineComponent({
   height: 100%;
 }
 
+.bwtabview-menu {
+  transform-origin: left top !important;
+}
+
 .bwtabview-menu .bwtabview-menuitem {
-  padding: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  user-select: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
 }
 
 .p-tabview-nav-content {

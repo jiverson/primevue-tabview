@@ -9,7 +9,7 @@
       </BWTabPanel>
       <BWTabPanel>
         <template #header>
-          <div class="bwtabview-menuitem" style="font-weight: 700; color: blue; line-height: 1;white-space: nowrap;">Amy Rodchester</div>
+          <div class="bwtabview-menuitem" style="font-weight: 700; color: blue; white-space: nowrap;">Amy Rodchester</div>
         </template>
         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
           alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
