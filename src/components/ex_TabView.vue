@@ -2,6 +2,7 @@
 <template>
   <div style="background-color: white; padding: 2rem">
     <BWTabView style="border: 1px solid red">
+
       <BWTabPanel v-for="tab in 10" :key="tab" :header="`Header ${tab}`">
         <p>{{ tab }} Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
           alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
@@ -11,7 +12,15 @@
         <template #header>
           <div class="bwtabview-menuitem" style="font-weight: 700; color: blue; white-space: nowrap;">Amy Rodchester</div>
         </template>
-        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
+        <p>Amy Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
+          alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
+          itaque quam delectus.</p>
+      </BWTabPanel>
+      <BWTabPanel>
+        <template #header>
+          <div class="bwtabview-menuitem" style="font-weight: 700; color: blue; white-space: nowrap;">George</div>
+        </template>
+        <p>George Lorem ipsum dolor sit amet, consectetur adipisicing elit. Expedita similique sapiente quas, illo
           alias sunt repellendus aut ab suscipit, nobis inventore cumque perspiciatis libero incidunt magnam possimus
           itaque quam delectus.</p>
       </BWTabPanel>

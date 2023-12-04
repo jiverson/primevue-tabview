@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import { cloneVNode, type ComponentPublicInstance, defineComponent, h, render, type VNode, type Slot, type VNodeChild } from 'vue';
+import { cloneVNode, type ComponentPublicInstance, defineComponent, h, render, type VNode, type Slot } from 'vue';
 import type { MenuItem, MenuItemCommandEvent } from 'primevue/menuitem';
 import BWTabMoreBtn from '@/components/bwtabview/BWTabMoreBtn.vue';
 import { BWTabPanel } from '@/components/bwtabview/BWTabPanel';
@@ -124,8 +124,11 @@ export default defineComponent({
 
   mounted() {
     const bwTabView = this.$refs.bwtabview as ComponentPublicInstance & { scrollInView: () => void };
-    const bwTabMenu = this.$refs.bwtabmenu as MenuType;
+    const bwTabMenu = this.$refs.bwtabmenu as ComponentPublicInstance;
 
+
+
+    console.log(bwTabMenu.$el.offsetWidth);
     // console.log(bwTabMenu.$el)
     // TODO: May not need this
     bwTabView.scrollInView = () => {
@@ -138,50 +141,17 @@ export default defineComponent({
     const moreContainer = primary.insertAdjacentElement('beforeend', document.createElement('li'));
     moreContainer.classList.add('p-tabview-header', 'p-tabview-nav-more');
 
-    // let moreComponent = h(BWTabMoreBtn, {
-    //   onClickMore: this.onClickMore,
-    // });
-
-
-    let moreComponent: VNode;
-
-    const moreComponentFn = (props?: MoreBtnProps, children?: Slot) => h(BWTabMoreBtn, {
+    let moreComponent = h(BWTabMoreBtn, {
       onClickMore: this.onClickMore,
-      ...props,
-    }, children);
+    });
 
     this.updateMore = (props?: MoreBtnProps, children?: Slot) => {
       console.log('2 --> updateMore');
-      console.log(props, children);
-
-      if(!moreComponent) {
-        console.log('2.1 --> updateMore');
-        moreComponent = moreComponentFn(props, children);
-        render(moreComponent, moreContainer);
-        return;
-      }
-
-      // if (children) {
-      //   console.log('2.3 --> updateMore');
-      //   moreComponent = moreComponentFn(props, children);
-      //   render(moreComponent, moreContainer);
-      //   return;
-      // }
-
-      console.log('2.4 --> updateMore');
-
-
-      moreComponent = h(cloneVNode(moreComponent, props, true), children);
-
-
-
-      // moreComponent = props ? cloneVNode(moreComponent, props) : moreComponent;
-      // console.log(moreComponent.children)
-
-
+      // console.log(props, children);
+      moreComponent = h(cloneVNode(moreComponent, props), children);
       render(moreComponent, moreContainer);
     };
-    this.updateMore();
+    this.updateMore({ headerTitle: 'More' });
 
     const primaryItems = primary.querySelectorAll('.p-tabview-nav > li.p-tabview-header:not(.p-tabview-nav-more)');
 
@@ -207,8 +177,7 @@ export default defineComponent({
     onCommand(event: MenuItemCommandEvent, index: number) {
       console.log('1 --> onCommand');
       this.active = index;
-      const headerTitle = this.tabs[index].props?.header;
-      this.updateMore({ headerTitle }, this.tabs[index].children?.header);
+      this.updateMore({ headerTitle: this.tabs[index].props?.header }, this.tabs[index].children?.header);
     },
 
     onToggleExpand(expanded: boolean) {

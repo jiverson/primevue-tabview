@@ -2,8 +2,7 @@
   <a class="p-tabview-nav-link p-tabview-header-action" aria-haspopup="true" :aria-expanded="expanded"
   @click="$emit('click-more', $event)">
   <span class="p-tabview-title" data-pc-section="headertitle">{{ headerTitle }}</span>
-  <slot>
-  </slot>
+  <slot v-if="!headerTitle"></slot>
   <Icon icon="ic:baseline-expand-more" class="tab-icon" :class="{ expanded }" />
   <!-- <i class="i-ic:round-expand-more tab-icon" :class="{ expanded }"></i> -->
   </a>
@@ -25,7 +24,7 @@ export default defineComponent({
     },
     headerTitle: {
       type: String,
-      default: 'More',
+      default: undefined,
     },
   },
   emits: ['click-more'],
